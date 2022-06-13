@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import styled from '@emotion/styled';
 import { useRouter } from 'next/router';
+import { UpdateItemLikeCnt } from '../api/item-info';
+import { FlexRowSpaceBetween } from '../styles/theme';
 
 type PriceProps = {
     id: number;
@@ -11,17 +13,20 @@ type Props = {
     id: number;
     itemName: string;
     ranking: number;
+    itemInfoId: string;
     itemImgUrl: string;
     likeTopReply: object;
     hateTopReply: object;
+    likeCnt: number;
     price: PriceProps[];
 };
 
 const Component: React.FunctionComponent<Props> = (props: Props) => {
     const router = useRouter();
     const onClickBox = (e: any) => {
-        router.push(`/post/${props.id}`);
+        router.push(`/item/${props.itemInfoId}`);
     };
+
     return (
         <Box key={props.id} onClick={onClickBox}>
             <RankWrapper>{props.ranking}</RankWrapper>
@@ -30,13 +35,21 @@ const Component: React.FunctionComponent<Props> = (props: Props) => {
                 <ItemName>{props.itemName}</ItemName>
                 {props.likeTopReply && <ItemPrice>{'BEST 한줄평'}</ItemPrice>}
                 {props.hateTopReply && <ItemPrice>{'WORST 한줄평'}</ItemPrice>}
-                <ItemPrice>
-                    {props?.price[1] && `${props?.price[1]?.price}원 ->`}
-                    {`${props?.price[0]?.price}원`}
-                </ItemPrice>
             </ItemInfo>
             <LikeWrapper>
-                <img src="/img/heart.png" width="20" height="20"></img>
+                <ItemPrice>
+                    {props?.price[1] && `${props?.price[1]?.price}원 -> `}
+                    {`${props?.price[0]?.price}원`}
+                </ItemPrice>
+                <LikeCnt>{props.likeCnt ? props.likeCnt : 0}</LikeCnt>
+                <HeartImg
+                    src="/img/heart.png"
+                    width="25"
+                    height="25"
+                    onClick={() => {
+                        UpdateItemLikeCnt(props?.itemInfoId);
+                    }}
+                />
             </LikeWrapper>
         </Box>
     );
@@ -84,16 +97,20 @@ const ProductImg = styled('img')`
     height: 300px;
 `;
 
+const HeartImg = styled('img')`
+    z-index: 998;
+`;
+
 const ItemInfo = styled('div')`
     height: 100px;
 `;
 
 const ItemName = styled('div')`
-    overflow: hidden;  
+    overflow: hidden;
     width: 93%;
     height: 50px;
     text-overflow: ellipsis;
-    word-break:break-all;
+    word-break: break-all;
     font-weight: bold;
     padding: 15px 10px 10px 15px;
 `;
@@ -105,11 +122,18 @@ const ItemPrice = styled('div')`
 `;
 
 const LikeWrapper = styled('div')`
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: flex-start;
-    padding: 0 15px 8px 15px;
+    ${FlexRowSpaceBetween}
+    padding: 0 15px 20px 5px;
     font-size: 14px;
+    font-weight: bold;
+    position: relative;
+`;
+
+const LikeCnt = styled('span')`
+    color: white;
+    position: absolute;
+    right: 23px;
+    z-index:999;
 `;
 
 export default Component;
