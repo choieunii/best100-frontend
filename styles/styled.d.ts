@@ -1,16 +1,20 @@
-import 'styled-components';
+import '@emotion/react';
 
-declare module 'styled-components' {
+declare module '@emotion/react' {
   export interface DefaultTheme {
-    color: {
-      charcoalGrey: '#464052';
-      black: '#000000';
-      white: '#FFFFFF';
-      coolGrey: '#A4A6B0';
-      battleshipGrey: '#74747E';
-      paleLilac: '#E8E8E8';
-      charcoalGray2: '#363A42';
-      purple: '#5b36ac';
+    fontSizes: {
+      xxs: string;
+      xs: string;
+      sm: string;
+      base: string;
+      md: string;
+      lg: string;
+    };
+    colors: {
+      black: string;
+      dark: string;
+      primary: string;
+      secondary: string;
     };
   }
 }

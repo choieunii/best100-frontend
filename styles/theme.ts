@@ -1,30 +1,50 @@
-import { DefaultTheme, css } from 'styled-components';
+import { DefaultTheme , css} from '@emotion/react';
 
-export const flexCenter = css`
+export const FlexRowCenter = css`
   display: flex;
-  align-items: center;
+  flex-direction: row;
   justify-content: center;
 `;
 
-export const theme: DefaultTheme = {
-  color: {
-    charcoalGrey: '#464052',
-    black: '#000000',
-    white: '#FFFFFF',
-    coolGrey: '#A4A6B0',
-    battleshipGrey: '#74747E',
-    paleLilac: '#E8E8E8',
-    charcoalGray2: '#363A42',
-    purple: '#5b36ac',
+export const FlexRowSpaceBetween = css`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+`;
+
+export const FlexColCenter = css`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+export const FlexColSpaceBetween = css`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+`;
+
+export const FlexRowStart = css`
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+`;
+
+const theme: DefaultTheme = {
+  fontSizes: {
+    xxs: '12px',
+    xs: '13px',
+    sm: '14px',
+    base: '16px',
+    md: '18px',
+    lg: '24px',
+  },
+  colors: {
+    black: '#000',
+    dark: '#191a20',
+    primary: '#3f4150',
+    secondary: '#8c8d96',
   },
 };
 
-const customMediaQuery = (maxWidth: number): string =>
-  `@media (max-width: ${maxWidth}px)`;
-
-export const media = {
-  custom: customMediaQuery,
-  pc: customMediaQuery(1440),
-  tablet: customMediaQuery(768),
-  mobile: customMediaQuery(576),
-};
+export default theme;
