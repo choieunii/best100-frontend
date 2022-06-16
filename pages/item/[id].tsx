@@ -1,17 +1,20 @@
 /** @jsxImportSource @emotion/react */
-import type { NextPage } from 'next';
+import type { GetServerSideProps, NextPage } from 'next';
 import Head from 'next/head';
 import styled from '@emotion/styled';
 import { css } from '@emotion/react';
 import styles from '../../styles/Home.module.css';
 import { useCallback, useEffect, useState } from 'react';
-import { getItemInfo } from '../../api/item-info';
+import { getItemInfo, updateItemLikeCnt } from '../../api/item-info';
 import { useRouter } from 'next/router';
 import {
     createReply,
     updateReply,
     deleteReply,
     getPagingReplyList,
+    updateReplyHateCnt,
+    updateReplyLikeCnt,
+    getTopLikeAndHateReply,
 } from '../../api/reply';
 import dynamic from 'next/dynamic';
 import ReplyInput from '../../components/ReplyInput';
@@ -23,55 +26,75 @@ import {
 } from '../../styles/theme';
 import { getItemPrices } from '../../api/price';
 import { getBestRankings } from '../../api/best';
+import ReplyBox from '../../components/ReplyBox';
+import {
+    ItemProps,
+    PriceProps,
+    RankingProps,
+    ReplyProps,
+} from '../../api/type';
 
-type Props = { data: any };
-type ItemProps = {
-    id: number;
-    brandName: string;
-    cateName: string;
-    currentUpdateBest: boolean;
-    itemImgUrl: string;
-    itemInfoId: string;
-    itemName: string;
-    largeCateName: string;
-    likeCnt: number;
-    middleCateName: string;
-    price: number;
-    ranking: number;
-};
+type Props = ItemProps;
+
 const Item: NextPage<Props> = (props) => {
-    const [itemInfoId, setItemInfoId] = useState<string>("");
+    const [itemInfoId, setItemInfoId] = useState<string>('');
     const [item, setItem] = useState<ItemProps>();
-    const [priceList, setPriceList] = useState<any>();
+    const [priceList, setPriceList] = useState<PriceProps[]>();
     const [rankingList, setRankingList] = useState<any>();
-    const [replies, setReplies] = useState<any>();
+    const [replies, setReplies] = useState<ReplyProps[]>([]);
     const [updateReplyId, setUpdateReplyId] = useState<number>();
+    const [replyPage, setReplyPage] = useState<number>(0);
+    const [likeTopReply, setLikeTopReply] = useState<ReplyProps>();
+    const [hateTopReply, setHateTopReply] = useState<ReplyProps>();
+    const [totalReplyCnt, setTotalReplyCnt] = useState<number>();
+    const [itemLikeCnt, setItemLikeCnt] = useState<number>(
+        !props.likeCnt ? 0 : props.likeCnt,
+    );
+    const [replySort, setReplySort] = useState<string>('currentUpdate');
     const router = useRouter();
+
+    const Chart = dynamic(() => import('../../components/Chart'), {
+        ssr: false,
+    });
+
+    const beforeRanking = rankingList?.length > 1 && rankingList[1].ranking;
+    const afterRanking =
+        rankingList && rankingList[0] && rankingList[0].ranking;
 
     useEffect(() => {
         const itemInfoId = location.pathname.split('/')[2];
         setItemInfoId(itemInfoId);
-        getItemInfo(itemInfoId).then((res: ItemProps) => setItem(res));
-    }, [itemInfoId]);
-
-    useEffect(() => {
-        const itemInfoId = location.pathname.split('/')[2];
-        getItemPrices(itemInfoId).then((res: any) => setPriceList(res));
+        getItemPrices(itemInfoId).then((res: PriceProps[]) =>
+            setPriceList(res),
+        );
         getBestRankings(itemInfoId).then((res: any) => setRankingList(res));
-    }, [itemInfoId]);
+    }, []);
 
     const addReply = useCallback(() => {
         const itemInfoId = location.pathname.split('/')[2];
-        setUpdateReplyId(undefined);
-        getPagingReplyList(itemInfoId).then((res: any) => setReplies(res));
-    }, [itemInfoId]);
+        getPagingReplyList(itemInfoId, replyPage, replySort).then((res: any) => {
+            setTotalReplyCnt(res.totalReplyCnt);
+            setReplies(res.replyList);
+        });
+        getTopLikeAndHateReply(itemInfoId).then((res: any) => {
+            setLikeTopReply(res.likeTopReply);
+            setHateTopReply(res.hateTopReply);
+        });
+        setReplyPage(0);
+    }, []);
 
     useEffect(() => {
         addReply();
     }, [addReply]);
 
-    const onClickDeleteReply = (e: any) => {
-        deleteReply(e.target.id).then((res) => addReply());
+    const onClickDeleteReply = (id: number, password: string) => {
+        deleteReply(id, password).then((res) => {
+            if (res.status === 500) {
+                window.alert(res.message);
+            } else {
+                addReply();
+            }
+        });
     };
 
     const onClickUpdateReply = (e: any) => {
@@ -81,10 +104,42 @@ const Item: NextPage<Props> = (props) => {
             setUpdateReplyId(e.target.id);
         }
     };
+    const onClickShowMoreButton = () => {
+        getPagingReplyList(itemInfoId, replyPage + 1).then((res: any) => {
+            if (replies !== undefined)
+                setReplies([...replies, ...res.replyList]);
+        });
+        setReplyPage((replyPage) => replyPage + 1);
+    };
 
-    const Chart = dynamic(() => import('../../components/Chart'), {
-        ssr: false,
-    });
+    const onClickLikeButton = () => {
+        updateItemLikeCnt(props?.itemInfoId).then((res) => {
+            setItemLikeCnt(res);
+        });
+    };
+
+    const closeUpdateInput = () => {
+        setUpdateReplyId(undefined);
+    };
+    const goToFilteredCategory = (type: string, category: string) => {
+        router.push(`/category?type=${type}&category=${category}`);
+    };
+
+    const checkIsDiscount = (discountRate: number) => {
+        return discountRate !== 0 && discountRate !== null;
+    };
+
+    const goToCjOnStylePage = () => {
+        window.location.href = `https://display.cjonstyle.com/p/item/${itemInfoId}?channelCode=50001002&rPIC=best`;
+    };
+
+    const onClickReplySortButton = (e: any) => {
+        setReplySort(e.target.id);
+        getPagingReplyList(itemInfoId, 0, e.target.id).then((res: any) => {
+            setReplies(res.replyList);
+        });
+        setReplyPage(0);
+    };
 
     return (
         <div className={styles.container}>
@@ -99,99 +154,175 @@ const Item: NextPage<Props> = (props) => {
                 </a>
             </Header>
             <FlexCol>
-                <CateWrapper>{`${item?.largeCateName} > ${item?.middleCateName} > ${item?.cateName}`}</CateWrapper>
+                <CateWrapper>
+                    <span
+                        onClick={() => {
+                            goToFilteredCategory(
+                                'largeCategory',
+                                props?.largeCateName,
+                            );
+                        }}
+                    >{`${props?.largeCateName} >`}</span>
+                    <span
+                        onClick={() => {
+                            goToFilteredCategory(
+                                'middleCategory',
+                                props?.middleCateName,
+                            );
+                        }}
+                    >
+                        {` ${props?.middleCateName} > `}{' '}
+                    </span>
+                    <span
+                        onClick={() => {
+                            goToFilteredCategory('category', props?.cateName);
+                        }}
+                    >
+                        {props?.cateName}
+                    </span>
+                </CateWrapper>
                 <ItemInfoWrapper>
-                    <PdImg src={item?.itemImgUrl} />
+                    <PdImg
+                        src={props?.itemImgUrl}
+                        onClick={goToCjOnStylePage}
+                    />
                     <PdInfoWrapper>
-                        <ItemBrandName>{`${item?.brandName} > `}</ItemBrandName>
-                        <ItemName>{item?.itemName}</ItemName>
-                        <ItemPrice>{`${item?.price}원`}</ItemPrice>
+                        <ItemBrandName>
+                            <BrandNameSpan
+                                onClick={() => {
+                                    goToFilteredCategory(
+                                        'brandName',
+                                        props?.brandName,
+                                    );
+                                }}
+                            >{`${props?.brandName} > `}</BrandNameSpan>
+                            <HeartImg
+                                src="/img/heart.png"
+                                width="40"
+                                height="40"
+                                onClick={onClickLikeButton}
+                            />
+                            <HeartSpan onClick={onClickLikeButton}>
+                                {itemLikeCnt}
+                            </HeartSpan>
+                        </ItemBrandName>
+                        <ItemName>{props?.itemName}</ItemName>
+
+                        <ItemPrice>
+                            {checkIsDiscount(props?.price?.discountRate) ? (
+                                <DiscountRate>
+                                    {`${props?.price?.discountRate}%`}
+                                </DiscountRate>
+                            ) : (
+                                <NowPriceText>현재가</NowPriceText>
+                            )}
+                            {`${
+                                checkIsDiscount(props?.price?.discountRate)
+                                    ? props?.price?.customerPrice
+                                    : props?.price?.price
+                            }원`}{' '}
+                            {checkIsDiscount(props?.price?.discountRate) && (
+                                <SalePrice>{`${props?.price?.price}원`}</SalePrice>
+                            )}
+                        </ItemPrice>
                         <ItemRanking>
-                            {item?.currentUpdateBest
-                                ? '최근 랭킹에 들어왔습니다.'
-                                : '5->4'}
+                            {props?.currentUpdateBest ? (
+                                '최근 랭킹에 들어왔습니다!'
+                            ) : (
+                                <FlexRow>
+                                    <BeforeRanking
+                                        onClick={() =>
+                                            router.push(
+                                                `/ranking?ranking=${beforeRanking}`,
+                                            )
+                                        }
+                                    >
+                                        {beforeRanking}
+                                    </BeforeRanking>
+                                    {beforeRanking && (
+                                        <RankingArrow src={'/img/arrow.png'} />
+                                    )}
+                                    <AfterRanking
+                                        onClick={() =>
+                                            router.push(
+                                                `/ranking?ranking=${afterRanking}`,
+                                            )
+                                        }
+                                    >
+                                        {afterRanking}
+                                    </AfterRanking>
+                                </FlexRow>
+                            )}
                         </ItemRanking>
                     </PdInfoWrapper>
                 </ItemInfoWrapper>
 
                 <GraphTitleWrapper>
-                    <span>랭킹 순위</span>
-                    <span>가격 변동</span>
+                    <GraphTitleText>최근 5일 랭킹</GraphTitleText>
+                    <GraphTitleText>최근 5일 가격</GraphTitleText>
                 </GraphTitleWrapper>
                 <ItemInfoWrapper>
                     <Chart
-                        data={priceList}
-                        itemInfoId={itemInfoId}
-                        chartType={"price"}
-                    />
-                    <Chart
                         data={rankingList}
                         itemInfoId={itemInfoId}
-                        chartType={"ranking"}
+                        chartType={'ranking'}
+                    />
+                    <Chart
+                        data={priceList}
+                        itemInfoId={itemInfoId}
+                        chartType={'price'}
                     />
                 </ItemInfoWrapper>
 
                 <DividerBox />
 
                 <ReplyCountArea>
-                    <span> 상품 한줄평 {replies?.length}</span>
+                    <span> 상품 한줄평 {totalReplyCnt}</span>
                 </ReplyCountArea>
+
                 <ReplyInput
                     isUpdate={false}
-                    itemId={item?.id}
+                    itemInfoId={props?.itemInfoId}
                     addReply={addReply}
                 ></ReplyInput>
 
+                {likeTopReply && (
+                    <ReplyBox
+                        type={'Best'}
+                        reply={likeTopReply}
+                        addReply={addReply}
+                    />
+                )}
+
+                {hateTopReply && (
+                    <ReplyBox
+                        type={'Worst'}
+                        reply={hateTopReply}
+                        addReply={addReply}
+                    />
+                )}
                 {replies &&
-                    replies?.map((reply: any, idx: number) => {
+                    replies?.map((reply: ReplyProps, idx: number) => {
                         return (
-                            <ReplyWrapper>
-                                <ReplyInfoWrapper>
-                                    <BoxWrapper>
-                                        <TextWrapper>{reply.text}</TextWrapper>
-                                        <StyleSpan
-                                            id={reply.id}
-                                            onClick={onClickUpdateReply}
-                                        >
-                                            {'수정 |'}
-                                        </StyleSpan>
-                                        <StyleSpan
-                                            id={reply.id}
-                                            onClick={onClickDeleteReply}
-                                        >
-                                            {' 삭제'}
-                                        </StyleSpan>
-                                    </BoxWrapper>
-
-                                    <LikeWrapper>
-                                        <ReplyOpinionWrapper>
-                                            <LikeImg
-                                                src={'/img/like-reply.png'}
-                                            />
-                                            <LikeText>10</LikeText>
-                                        </ReplyOpinionWrapper>
-                                        <ReplyOpinionWrapper>
-                                            <LikeImg
-                                                src={'/img/hate-reply.png'}
-                                            />
-                                            <LikeText>10</LikeText>
-                                        </ReplyOpinionWrapper>
-                                    </LikeWrapper>
-                                </ReplyInfoWrapper>
-
-                                {updateReplyId == reply.id && (
-                                    <ReplyInput
-                                        isUpdate={true}
-                                        itemId={item?.id}
-                                        replyId={updateReplyId}
-                                        addReply={addReply}
-                                    ></ReplyInput>
-                                )}
-                            </ReplyWrapper>
+                            <ReplyBox
+                                key={idx}
+                                reply={reply}
+                                itemInfoId={item?.itemInfoId}
+                                updateReplyId={updateReplyId}
+                                closeUpdateInput={closeUpdateInput}
+                                onClickUpdateReply={onClickUpdateReply}
+                                onClickDeleteReply={onClickDeleteReply}
+                                addReply={addReply}
+                            ></ReplyBox>
                         );
                     })}
 
-                <ShowMoreButton>+더보기</ShowMoreButton>
+                {totalReplyCnt !== undefined &&
+                    totalReplyCnt / (replyPage + 1) > 5 && (
+                        <ShowMoreButton onClick={onClickShowMoreButton}>
+                            +더보기
+                        </ShowMoreButton>
+                    )}
             </FlexCol>
             <footer className={styles.footer}>
                 CJ ON STYLE BEST 100 PROJECT
@@ -200,13 +331,50 @@ const Item: NextPage<Props> = (props) => {
     );
 };
 
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+    const itemInfoId: string | string[] | undefined = params?.id;
+    const props: ItemProps = getItemInfo(itemInfoId);
+    return {
+        props,
+    };
+};
+
+type replySortStyle = {
+    sortType: string;
+    thisType: string;
+    id: string;
+};
+const ReplySortSpan = styled('span')`
+    font-size: 14px;
+    color: ${(props: replySortStyle) =>
+        props.sortType === props.thisType ? 'black' : 'gray'};
+    cursor: pointer;
+`;
+const BrandNameSpan = styled('span')`
+    cursor: pointer;
+`;
+const HeartSpan = styled('span')`
+    position: absolute;
+    left: 364px;
+    top: 0px;
+    font-size: 20px;
+    height: 40px;
+    width: 40px;
+    cursor: pointer;
+`;
+const HeartImg = styled('img')`
+    position: absolute;
+    left: 355px;
+    bottom: 37px;
+    cursor: pointer;
+`;
+
 const Header = styled('div')`
     position: relative;
     width: 100%auto;
     height: 60px;
     line-height: 100px;
     padding-top: 35px;
-    padding-bottom: 30px;
 `;
 
 const ItemRanking = styled('div')`
@@ -218,11 +386,59 @@ const ItemRanking = styled('div')`
     height: 100px;
 `;
 
+const NowPriceText = styled(`span`)`
+    font-size: 20px;
+    color: rgba(240, 44, 97);
+    font-weight: bold;
+    margin-bottom: 10px;
+    padding-right: 10px;
+    height: 40px;
+    line-height: 40px;
+`;
+
+const AfterRanking = styled('span')`
+    color: purple;
+    font-weight: bold;
+    font-size: 60px;
+    cursor: pointer;
+`;
+
+const SalePrice = styled(`span`)`
+    font-size: 24px;
+    color: gray;
+    text-decoration: line-through;
+`;
+
+const BeforeRanking = styled('span')`
+    color: rgba(51, 178, 158);
+    font-weight: bold;
+    font-size: 60px;
+    cursor: pointer;
+`;
+
+const RankingArrow = styled('img')`
+    width: 40px;
+    height: 30px;
+    padding-left: 30px;
+    padding-right: 30px;
+`;
+
 const ItemBrandName = styled('div')`
+    position: relative;
     font-size: 15px;
     line-height: 26px;
     color: #111;
     font-weight: bold;
+`;
+
+const DiscountRate = styled('span')`
+    font-size: 43px;
+    color: rgba(240, 44, 97);
+    font-weight: bold;
+    margin-bottom: 10px;
+    padding-right: 10px;
+    height: 40px;
+    line-height: 40px;
 `;
 
 const ItemName = styled('div')`
@@ -232,29 +448,28 @@ const ItemName = styled('div')`
     padding-top: 15px;
 `;
 
+const GraphTitleText = styled('div')`
+    font-size: 15px;
+`;
 const ItemPrice = styled('div')`
-    font-size: 44px;
+    font-size: 41px;
     font-weight: 400;
     padding-top: 30px;
 `;
 
 const PdImg = styled('img')`
-    width: 400px;
-    height: 400px;
+    width: 350px;
+    height: 350px;
+    cursor: pointer;
 `;
 
-const UpdateWrapper = styled('div')`
-    width: 800px;
-    text-align: center;
-    margin-bottom: 40px;
-`;
-
-const CateWrapper = styled('div')`
-    width: 850px;
+const CateWrapper = styled('span')`
+    width: 830px;
     margin-top: 20px;
     margin-bottom: 20px;
     font-size: 14px;
     color: #767676;
+    cursor: pointer;
 `;
 
 const ShowMoreButton = styled('button')`
@@ -263,6 +478,7 @@ const ShowMoreButton = styled('button')`
     font-size: 13px;
     background: white;
     border: none;
+    cursor: pointer;
 `;
 
 const FlexCol = styled('div')`
@@ -270,27 +486,22 @@ const FlexCol = styled('div')`
     align-items: center;
 `;
 
+const FlexRow = styled('div')`
+    ${FlexRowCenter}
+    align-items: center;
+`;
+
 const PdInfoWrapper = styled('div')`
     width: 400px;
-    height: 400px;
-    padding-left: 60px;
-`;
-
-const ReplyOpinionWrapper = styled('div')`
-    display: flex;
-    flex-direction: column;
-`;
-
-const TextWrapper = styled('div')`
-    margin-top: 10px;
-    margin-bottom: 10px;
+    height: 390px;
+    margin-left: 90px;
 `;
 
 const GraphTitleWrapper = styled('div')`
     ${FlexRowSpaceBetween}
     width: 550px;
     height: 50px;
-    margin-top: 70px;
+    margin-top: 10px;
     margin-bottom: 20px;
     font-size: 17px;
     font-weight: bold;
@@ -302,37 +513,14 @@ const DividerBox = styled('div')`
     font-size: 20px;
 `;
 
-const LikeWrapper = styled('div')`
-    ${FlexRowCenter}
-    padding-top: 5px;
-    padding-right: 10px;
-`;
-
-const LikeText = styled('span')`
-    font-size: 14px;
-    margin-right: 10px;
-    margin-top: 10px;
-`;
-
 const CustomLogo = styled('img')`
     margin-left: 30px;
     position: absolute;
     left: 6%;
 `;
 
-const ReplyWrapper = styled('div')`
-    padding-top: 10px;
-`;
-
-const LikeImg = styled('img')`
-    width: 15px;
-    height: 15px;
-    margin-top: 15px;
-    margin-right: 10px;
-`;
-
 const ReplyCountArea = styled('div')`
-    ${FlexRowStart}
+    ${FlexRowSpaceBetween}
     width: 800px;
     padding-bottom: 20px;
     font-size: 20px;
@@ -343,21 +531,4 @@ const ItemInfoWrapper = styled('div')`
     ${FlexRowSpaceBetween}
 `;
 
-const ReplyInfoWrapper = styled('div')`
-    width: 800px;
-    border-bottom: 1px solid rgb(233, 236, 239);
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-`;
-const BoxWrapper = styled('div')`
-    width: 800px;
-    height: 70px;
-    padding-left: 20px;
-`;
-
-const StyleSpan = styled('span')`
-    font-size: 13px;
-    cursor: pointer;
-`;
 export default Item;
