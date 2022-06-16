@@ -1,16 +1,17 @@
 import { apiFetch } from './api-fetch';
 import { requestUrl } from './url';
 
-export type updatePostProps = {
-    title: string;
-    text: string;
-    date: string;
-};
 
-export const getItemInfo = async (item_info_id: string) => {
+export const getItemInfo = async (item_info_id: string | string[] | undefined ) => {
     return await apiFetch(`${requestUrl}/item/${item_info_id}`, 'get');
 }
 
-export const UpdateItemLikeCnt = async (item_info_id: string) => {
+export const updateItemLikeCnt = async (item_info_id: string) => {
     return await apiFetch(`${requestUrl}/item/like/${item_info_id}`, 'post');
+};
+
+export const itemSearch = async (name: string) => {
+    let url = `${requestUrl}/item/search`;
+    if(name) url += `?itemName=${name}`;
+    return await apiFetch(url, 'get');
 };
