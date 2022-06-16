@@ -1,25 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import styled from '@emotion/styled';
 import { useRouter } from 'next/router';
-import { UpdateItemLikeCnt } from '../api/item-info';
+import { BestTop100Props } from '../api/type';
 import { FlexRowSpaceBetween } from '../styles/theme';
 
-type PriceProps = {
-    id: number;
-    price: number;
-    currentUpdate: Date;
-};
-type Props = {
-    id: number;
-    itemName: string;
-    ranking: number;
-    itemInfoId: string;
-    itemImgUrl: string;
-    likeTopReply: object;
-    hateTopReply: object;
-    likeCnt: number;
-    price: PriceProps[];
-};
+type Props = BestTop100Props;
 
 const Component: React.FunctionComponent<Props> = (props: Props) => {
     const router = useRouter();
@@ -29,34 +14,52 @@ const Component: React.FunctionComponent<Props> = (props: Props) => {
 
     return (
         <Box key={props.id} onClick={onClickBox}>
-            <RankWrapper>{props.ranking}</RankWrapper>
+            <RankWrapper>{props.ranking[0].ranking}</RankWrapper>
+            {props.price[0].discountRate > 0 && (
+                <DiscountWrapper>{`${props.price[0].discountRate}%`}</DiscountWrapper>
+            )}
             <ProductImg src={props.itemImgUrl} />
-            <ItemInfo>
-                <ItemName>{props.itemName}</ItemName>
-                {props.likeTopReply && <ItemPrice>{'BEST 한줄평'}</ItemPrice>}
-                {props.hateTopReply && <ItemPrice>{'WORST 한줄평'}</ItemPrice>}
-            </ItemInfo>
+            <ItemName>{props.itemName}</ItemName>
+            <ItemReplyInfo>
+                {props.likeTopReply && (
+                    <ReplyText>{`L - ${props?.likeTopReply?.content}`}</ReplyText>
+                )}
+                {props.hateTopReply && (
+                    <ReplyText>{`H - ${props?.hateTopReply?.content}`}</ReplyText>
+                )}
+            </ItemReplyInfo>
             <LikeWrapper>
-                <ItemPrice>
-                    {props?.price[1] && `${props?.price[1]?.price}원 -> `}
-                    {`${props?.price[0]?.price}원`}
-                </ItemPrice>
+                <ItemRanking>
+                    <RankingSpan color="rgba(51, 178, 158)">
+                        {props?.price[1] && `${props.ranking[1].ranking}`}
+                    </RankingSpan>
+                    {props?.price[1] && ' -> '}
+                    <RankingSpan color="purple">
+                        {' '}
+                        {`${props.ranking[0].ranking}`}
+                    </RankingSpan>
+                </ItemRanking>
+                <ReplyCntInfo>댓글 {props.replyCnt}개</ReplyCntInfo>
                 <LikeCnt>{props.likeCnt ? props.likeCnt : 0}</LikeCnt>
-                <HeartImg
-                    src="/img/heart.png"
-                    width="25"
-                    height="25"
-                    onClick={() => {
-                        UpdateItemLikeCnt(props?.itemInfoId);
-                    }}
-                />
+                <HeartImg src="/img/heart.png" width="15" height="15" />
             </LikeWrapper>
         </Box>
     );
 };
 
+const RankingSpan = styled('span')`
+    color: ${(props) => props.color};
+`;
+const ReplyText = styled('div')`
+    padding-left: 15px;
+    font-size: 13px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    width: 230px;
+`;
 const Box = styled('div')`
-    width: 300px;
+    width: 270px;
     height: 450px;
     background: white;
     border-radius: 4px;
@@ -80,6 +83,30 @@ const Box = styled('div')`
     position: relative;
 `;
 
+const ReplyCntInfo = styled('div')`
+    font-size: 11px;
+    position: absolute;
+    line-height: 25px;
+    right: 46px;
+`;
+
+const ItemReplyInfo = styled('div')`
+    height: 55px;
+`;
+
+const DiscountWrapper = styled('div')`
+    width: 43px;
+    height: 43px;
+    background: rgba(51, 178, 158);
+    top: 0px;
+    right: 0px;
+    position: absolute;
+    color: white;
+    font-size: 20px;
+    text-align: center;
+    line-height: 40px;
+`;
+
 const RankWrapper = styled('span')`
     width: 40px;
     height: 40px;
@@ -98,11 +125,10 @@ const ProductImg = styled('img')`
 `;
 
 const HeartImg = styled('img')`
+    position: absolute;
+    bottom: 32px;
+    right: 18px;
     z-index: 998;
-`;
-
-const ItemInfo = styled('div')`
-    height: 100px;
 `;
 
 const ItemName = styled('div')`
@@ -115,25 +141,25 @@ const ItemName = styled('div')`
     padding: 15px 10px 10px 15px;
 `;
 
-const ItemPrice = styled('div')`
+const ItemRanking = styled('div')`
     padding-left: 15px;
     padding-right: 15px;
-    font-size: 14px;
+    font-size: 17px;
 `;
 
 const LikeWrapper = styled('div')`
     ${FlexRowSpaceBetween}
-    padding: 0 15px 20px 5px;
+    padding: 0 15px 10px 5px;
     font-size: 14px;
     font-weight: bold;
     position: relative;
 `;
 
 const LikeCnt = styled('span')`
-    color: white;
+    font-size: 11px;
     position: absolute;
-    right: 23px;
-    z-index:999;
+    top: 5px;
+    right: 22px;
 `;
 
 export default Component;
