@@ -1,9 +1,19 @@
 import { apiFetch } from './api-fetch';
 import { requestUrl } from './url';
 
-
-export const getPagingReplyList = async (item_info_id: string) => {
-    return await apiFetch(`${requestUrl}/reply/${item_info_id}`, 'get');
+export const getPagingReplyList = async (
+    item_info_id: string,
+    page?: number,
+    sort?: string,
+) => {
+    let url = `${requestUrl}/replies/${item_info_id}`;
+    if (page) {
+        url += `?page=${page}`;
+        if (sort) url += `&sort=${sort}`;
+    } else {
+        if (sort) url += `?sort=${sort},desc`;
+    }
+    return await apiFetch(url, 'get');
 };
 
 export const getReply = async (reply_id: any) => {
@@ -15,14 +25,16 @@ export const getReplyTopLikeCntAndHateCnt = async (item_info_id: string) => {
 };
 
 export const createReply = async (
-    item_info_id: string,
-    content: string,
+    itemInfoId?: string,
+    content?: string,
     password?: string,
+    hasPassword?: boolean,
 ) => {
     return await apiFetch(`${requestUrl}/reply`, 'post', {
-        item_info_id,
+        itemInfoId,
         content,
         password,
+        hasPassword,
     });
 };
 
@@ -45,6 +57,12 @@ export const updateReply = async (
     });
 };
 
-export const deleteReply = async (reply_id: Number) => {
-    return await apiFetch(`${requestUrl}/reply/${reply_id}`, 'delete');
+export const deleteReply = async (reply_id: Number, password: string) => {
+    return await apiFetch(`${requestUrl}/reply/${reply_id}`, 'post', {
+        password,
+    });
+};
+
+export const getTopLikeAndHateReply = async (item_info_id: string) => {
+    return await apiFetch(`${requestUrl}/reply/top/${item_info_id}`, 'get');
 };
