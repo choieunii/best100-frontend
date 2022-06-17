@@ -4,13 +4,10 @@ import Head from 'next/head';
 import styled from '@emotion/styled';
 import styles from '../styles/Home.module.css';
 import ListBox from '../components/ListBox';
-import { getBestTop100List, getCurrent3DaysBestTop5 } from '../api/best';
+import { getBestTop100List, getCurrent5DaysBestTop5 } from '../api/best';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import {
-    FlexRowCenter,
-    FlexRowStart,
-} from '../styles/theme';
+import { FlexRowCenter, FlexRowStart } from '../styles/theme';
 import { BestTop100Props } from '../api/type';
 import { itemSearch } from '../api/item-info';
 
@@ -27,35 +24,46 @@ const Home: NextPage<Props> = (props) => {
 
     useEffect(() => {
         if (sortType === 'best5') {
-            getCurrent3DaysBestTop5().then((res) => setBestTopList(res));
+            getCurrent5DaysBestTop5().then((res) => setBestTopList(res));
         } else {
-            getBestTop100List(sortType).then((res: BestTop100Props[]) =>{
-                if(sortType === "likeCnt"){
-                    res.sort((a,b) => b.likeCnt - a.likeCnt);
-                }else if(sortType === "replyCnt"){
-                    res.sort((a,b) => b.replyCnt - a.replyCnt);
+            getBestTop100List(sortType).then((res: BestTop100Props[]) => {
+                if (sortType === 'likeCnt') {
+                    res.sort((a, b) => b.likeCnt - a.likeCnt);
+                } else if (sortType === 'replyCnt') {
+                    res.sort((a, b) => b.replyCnt - a.replyCnt);
                 }
-                setBestTopList(res)
+                setBestTopList(res);
             });
         }
     }, [sortType]);
 
     const enterKeyPress = (e: any) => {
-        if(e.key == 'Enter'){
-            itemSearch(searchValue).then((res)=>{
+        if (e.key == 'Enter' && searchValue) {
+            itemSearch(searchValue).then((res) => {
                 setBestTopList(res);
-            })
+            });
         }
-    }
+    };
 
     const divs = bestTopList?.map((data: BestTop100Props, i: number) => {
         return <ListBox key={i} {...data} />;
     });
 
+    const getDate = (day : number) => {
+        const today = new Date();
+        const before = new Date(today.setDate(today.getDate() - day));
+        return before.toISOString().slice(0,10);
+    }
+
     const List =
         divs &&
-        new Array(Math.ceil(divs?.length / 5)).fill(null).map((div, i) => {
-            return <FlexRow key={i}>{divs?.splice(0, 5)}</FlexRow>;
+        new Array(Math.ceil(divs?.length / 5)).fill(null).map((value, i) => {
+            return (
+                <>
+                    {sortType === 'best5' && <DateSpan>{getDate(4-i)}</DateSpan>}
+                    <FlexRow key={i}>{divs?.splice(0, 5)}</FlexRow>
+                </>
+            );
         });
 
     return (
@@ -148,6 +156,13 @@ const Home: NextPage<Props> = (props) => {
         </div>
     );
 };
+
+const DateSpan = styled('div')`
+    font-size: 30px;
+    margin-top: 40px;
+    margin-left: 80px;
+    font-weight: bold;
+`
 
 const SearchInput = styled('input')`
     border: 1px solid gray;

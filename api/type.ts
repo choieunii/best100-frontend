@@ -32,6 +32,7 @@ export type BestTop100Props = {
     replyCnt: number;
     ranking: RankingProps[];
     price: PriceProps[];
+    currentUpdate: Date;
 };
 
 

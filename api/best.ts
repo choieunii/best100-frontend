@@ -24,7 +24,7 @@ export const getBestByRanking = async (url:string) => {
     return await apiFetch(`${requestUrl}/best/ranking${url}`, 'get');
 };
 
-export const getCurrent3DaysBestTop5 = async () => {
+export const getCurrent5DaysBestTop5 = async () => {
     return await apiFetch(`${requestUrl}/best/rankings/top5`, 'get');
 };
 
