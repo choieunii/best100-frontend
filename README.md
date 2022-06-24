@@ -5,7 +5,8 @@ Front-end : Next.js, TypeScript, Nivo, CSS IN JS
 Back-end : Springboot, JPA, MySQL
 ```
 
-개발 기간 - 2022-06-08 ~ 2022-06-17
+### 개발 기간 
+2022-06-08 ~ 2022-06-17
 
 ### 주요 기능
 ```
