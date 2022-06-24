@@ -12,6 +12,14 @@ export type RankingProps = {
     countOfItemLikes: number;
     countOFReplies: number;
 };
+export type ReplyListProps = {
+    totalReplyCnt : number;
+    replyList : ReplyProps[];
+}
+export type ReplyTopBestHate = {
+    likeTopReply: ReplyProps;
+    hateTopReply: ReplyProps;
+}
 export type ReplyProps = {
     id: number;
     content: string;

@@ -25,6 +25,11 @@ const Component: React.FunctionComponent<Props> = (props: Props) => {
     }, []);
 
     const onClickWriteReply = (e: any) => {
+        if (currReply === '') {
+            window.alert('한줄평 내용을 입력해주세요');
+            return;
+        }
+
         if (props.replyId) {
             updateReply(props?.replyId, currReply, password).then((res) => {
                 if (res.status === 500) {
@@ -32,7 +37,8 @@ const Component: React.FunctionComponent<Props> = (props: Props) => {
                 } else {
                     props.addReply();
                     setCurrReply('');
-                    props.closeUpdateInput!== undefined && props.closeUpdateInput();
+                    props.closeUpdateInput !== undefined &&
+                        props.closeUpdateInput();
                 }
             });
             setPassword('');
@@ -59,6 +65,7 @@ const Component: React.FunctionComponent<Props> = (props: Props) => {
             onClickWriteReply(e);
         }
     };
+
     return (
         <>
             <CustomInput
@@ -74,15 +81,13 @@ const Component: React.FunctionComponent<Props> = (props: Props) => {
                         onChange={() => setHasPassword(!hasPassword)}
                     />
                 )}
-                {(hasPassword ||
-                    props.isUpdate) && (
-                        <PasswordInput
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-
-                        />
-                    )}
+                {(hasPassword || props.isUpdate) && (
+                    <PasswordInput
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
+                )}
                 <CustomButton onClick={onClickWriteReply}>
                     {props.isUpdate ? '한줄평 수정' : '한줄평 작성'}
                 </CustomButton>
