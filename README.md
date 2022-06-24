@@ -1,4 +1,4 @@
-Front end: [FE best100 Repository](https://github.com/choieunii/best100-frontend)
+Back-end: [BE best100 Repository](https://github.com/choieunii/best100-backend)
 
 ```
 Front-end : Next.js, TypeScript, Nivo   
