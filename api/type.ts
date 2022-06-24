@@ -13,13 +13,13 @@ export type RankingProps = {
     countOFReplies: number;
 };
 export type ReplyListProps = {
-    totalReplyCnt : number;
-    replyList : ReplyProps[];
-}
+    totalReplyCnt: number;
+    replyList: ReplyProps[];
+};
 export type ReplyTopBestHate = {
     likeTopReply: ReplyProps;
     hateTopReply: ReplyProps;
-}
+};
 export type ReplyProps = {
     id: number;
     content: string;
@@ -42,7 +42,6 @@ export type BestTop100Props = {
     price: PriceProps[];
     currentUpdate: Date;
 };
-
 
 export type BestByRankingProps = {
     id: number;
